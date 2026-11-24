@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Entri Kamus</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #e9ecef;
+            color: #212529;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h2 {
+            text-align: center;
+            color: #343a40;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .btn-simpan {
+            padding: 10px 20px;
+            background: #ffc107;
+            color: #212529;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            font-size: 16px;
+        }
+        .btn-simpan:hover {
+            background: #e0a800;
+        }
+        .kembali {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .kembali a {
+            text-decoration: none;
+            color: #6c757d;
+            font-weight: bold;
+        }
+        .kembali a:hover {
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Edit: {{ entry.Kata }}</h2>
+        <form method="POST" action="/edit/{{ index }}">
+            <div class="form-group">
+                <label>Kata (Manado)</label>
+                <input type="text" name="kata" value="{{ entry.Kata }}" required>
+            </div>
+            <div class="form-group">
+                <label>Ejaan (Fonetik)</label>
+                <input type="text" name="ejaan" value="{{ entry.Ejaan }}">
+            </div>
+            <div class="form-group">
+                <label>Arti (Indonesia)</label>
+                <input type="text" name="arti" value="{{ entry.Arti }}" required>
+            </div>
+            <div class="form-group">
+                <label>Contoh Kalimat Manado</label>
+                <input type="text" name="contoh_manado" value="{{ entry.Contoh_Manado }}">
+            </div>
+            <div class="form-group">
+                <label>Contoh Kalimat Indonesia</label>
+                <input type="text" name="contoh_indonesia" value="{{ entry.Contoh_Indonesia }}">
+            </div>
+            <button type="submit" class="btn-simpan">Simpan Perubahan & Re-index</button>
+        </form>
+        <div class="kembali">
+            <a href="/kelola">← Batal, kembali ke Kelola Data</a>
+        </div>
+    </div>
+</body>
+</html>

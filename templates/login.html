@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin - Kamus Manado</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; min-height: 100vh;
+               display: flex; align-items: center; justify-content: center;
+               background: #e9ecef; color: #212529; }
+        .card { background: #fff; width: 100%; max-width: 380px; padding: 32px;
+                border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h2 { text-align: center; margin: 0 0 6px; color: #343a40; }
+        p.sub { text-align: center; color: #6c757d; font-size: 14px;
+                margin: 0 0 22px; }
+        label { display: block; font-weight: bold; font-size: 13px;
+                margin-bottom: 6px; }
+        input[type="password"] { width: 100%; padding: 12px; font-size: 16px;
+            border: 1px solid #ced4da; border-radius: 8px;
+            box-sizing: border-box; }
+        button { width: 100%; margin-top: 18px; padding: 12px; font-size: 16px;
+            font-weight: bold; color: #fff; background: #1b2a4a;
+            border: none; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #24375f; }
+        .error { background: #f8d7da; color: #842029; padding: 10px 12px;
+            border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
+        .back { text-align: center; margin-top: 16px; font-size: 14px; }
+        .back a { color: #6c757d; text-decoration: none; font-weight: bold; }
+        .back a:hover { color: #0d6efd; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Login Admin</h2>
+        <p class="sub">Diperlukan untuk tambah, edit, dan hapus data.</p>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <form method="POST" action="/login">
+            <input type="hidden" name="next" value="{{ next }}">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required autofocus>
+            <button type="submit">Masuk</button>
+        </form>
+        <div class="back"><a href="/">&larr; Kembali ke pencarian</a></div>
+    </div>
+</body>
+</html>

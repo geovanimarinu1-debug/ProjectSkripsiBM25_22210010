@@ -1,0 +1,896 @@
+[
+  {
+    "b": 0.75,
+    "group_id": "draft_1788964215710",
+    "group_name": "Query Uji 1",
+    "k1": 1.2,
+    "last_evaluated": "2026-09-23 12:32:51",
+    "queries": [
+      {
+        "graded_gt": {
+          "kop": 1,
+          "makang": 3,
+          "ngare-ngare": 1,
+          "sobu": 1
+        },
+        "judged": {
+          "diet": 0,
+          "hap": 0,
+          "hede, tahede-hede": 0,
+          "instan": 0,
+          "kapuru": 0,
+          "kop": 1,
+          "lontang": 0,
+          "makang": 3,
+          "ngare-ngare": 1,
+          "ngoni": 0,
+          "oli-oli": 0,
+          "rema-rema": 0,
+          "snek": 0,
+          "sobu": 1,
+          "tola-tola": 0,
+          "wowa": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "makan",
+        "qid": "q_1788964215724_365"
+      },
+      {
+        "graded_gt": {
+          "kasegaran": 1,
+          "minung": 3,
+          "tola-tola": 1
+        },
+        "judged": {
+          "akua": 0,
+          "bol": 0,
+          "instan": 0,
+          "jenewer": 0,
+          "kana": 0,
+          "kapsul": 0,
+          "kasegaran": 1,
+          "minung": 3,
+          "tola-tola": 1
+        },
+        "kategori": "Kata Umum",
+        "kueri": "minum",
+        "qid": "q_1788964334837_396"
+      },
+      {
+        "graded_gt": {
+          "bobo": 2,
+          "tasono": 1,
+          "tidor": 3
+        },
+        "judged": {
+          "bobo": 2,
+          "pake": 0,
+          "pang": 0,
+          "rika": 0,
+          "rosbang": 0,
+          "tasono": 1,
+          "tidor": 3
+        },
+        "kategori": "Kata Umum",
+        "kueri": "tidur",
+        "qid": "q_1788965149621_670"
+      },
+      {
+        "graded_gt": {
+          "bulan": 3
+        },
+        "judged": {
+          "agustus": 0,
+          "ambulans": 0,
+          "angsuran": 0,
+          "brikut": 0,
+          "bulan": 3,
+          "injil": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "bulan",
+        "qid": "q_1789000168245_351"
+      },
+      {
+        "graded_gt": {
+          "datang": 3,
+          "fruk": 1,
+          "vruk": 1
+        },
+        "judged": {
+          "datang": 3,
+          "eso": 0,
+          "fruk": 1,
+          "lat": 0,
+          "vruk": 1
+        },
+        "kategori": "Kata Umum",
+        "kueri": "datang",
+        "qid": "q_1789000212276_454"
+      },
+      {
+        "graded_gt": {
+          "fur": 2,
+          "kaluar": 2,
+          "pi": 3,
+          "pigi": 2
+        },
+        "judged": {
+          "fur": 2,
+          "kaluar": 2,
+          "mangael": 0,
+          "pi": 3,
+          "pigi": 2
+        },
+        "kategori": "Kata Umum",
+        "kueri": "pergi",
+        "qid": "q_1789000246563_326"
+      },
+      {
+        "graded_gt": {
+          "haga": 2,
+          "lia": 3
+        },
+        "judged": {
+          "bibliografi": 0,
+          "blakang": 0,
+          "ekspresi": 0,
+          "haga": 2,
+          "lia": 3,
+          "mangkage": 0,
+          "mata": 0,
+          "napo": 0,
+          "nyare": 0,
+          "roster": 0,
+          "sambidu": 0,
+          "songko": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "lihat",
+        "qid": "q_1789000304065_705"
+      },
+      {
+        "graded_gt": {
+          "dudu": 3
+        },
+        "judged": {
+          "dudu": 3,
+          "emperan": 0,
+          "kadera": 0,
+          "leput": 0,
+          "rotang": 0,
+          "sambidu": 0,
+          "sombar": 0
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "dudu",
+        "qid": "q_1789000334487_666"
+      },
+      {
+        "graded_gt": {
+          "badiri": 3
+        },
+        "judged": {
+          "badiri": 3,
+          "batang": 0,
+          "berdikari": 0,
+          "sei": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "berdiri",
+        "qid": "q_1789000350354_82"
+      },
+      {
+        "graded_gt": {
+          "cakle": 2,
+          "fur": 2,
+          "kalamper": 2,
+          "kalaper": 2,
+          "lopas": 1
+        },
+        "judged": {
+          "cakle": 2,
+          "fur": 2,
+          "kalamper": 2,
+          "kalaper": 2,
+          "klarifikasi": 0,
+          "laku": 0,
+          "lopas": 1,
+          "malaria": 0,
+          "pancar, tapancar": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "lari",
+        "qid": "q_1789000357900_678"
+      },
+      {
+        "graded_gt": {
+          "saki": 3
+        },
+        "judged": {
+          "adu": 0,
+          "ambeien": 0,
+          "beibi": 0,
+          "besuk": 0,
+          "kabentang": 0,
+          "lusiang": 0,
+          "malaria": 0,
+          "saki": 3,
+          "sal": 0,
+          "tereng": 0
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "saki",
+        "qid": "q_1789000445827_793"
+      },
+      {
+        "graded_gt": {
+          "gereja": 3,
+          "greja": 3,
+          "kostor": 1,
+          "opas": 1
+        },
+        "judged": {
+          "brur": 0,
+          "gereja": 3,
+          "greja": 3,
+          "kolom": 0,
+          "kostor": 1,
+          "latihan": 0,
+          "opas": 1,
+          "sloyor": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "Gereja",
+        "qid": "q_1789000494792_287"
+      },
+      {
+        "graded_gt": {
+          "bray": 2,
+          "bro": 2,
+          "cees": 3,
+          "hawe": 2,
+          "tamang": 3
+        },
+        "judged": {
+          "bray": 2,
+          "bro": 2,
+          "cees": 3,
+          "hawe": 2,
+          "kalo": 0,
+          "tamang": 3
+        },
+        "kategori": "Kata Umum",
+        "kueri": "teman",
+        "qid": "q_1789000527021_371"
+      },
+      {
+        "graded_gt": {
+          "fam": 1,
+          "famili": 2
+        },
+        "judged": {
+          "fam": 1,
+          "famili": 2,
+          "harmonis": 0,
+          "internal": 0,
+          "kolom": 0,
+          "tengo": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "keluarga",
+        "qid": "q_1789000574808_913"
+      },
+      {
+        "graded_gt": {
+          "anak": 3,
+          "gai": 2,
+          "kacili": 2,
+          "kodomo": 2
+        },
+        "judged": {
+          "almanak": 0,
+          "anak": 3,
+          "anggota": 0,
+          "aoq": 0,
+          "baranak": 0,
+          "biang": 0,
+          "boboho": 0,
+          "branak": 0,
+          "cenge-cenge": 0,
+          "dodorobe": 0,
+          "gai": 2,
+          "grep": 0,
+          "kacili": 2,
+          "kodomo": 2,
+          "kumkum": 0,
+          "mambao": 0,
+          "momo": 0,
+          "panako": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "anak",
+        "qid": "q_1789000600390_416"
+      },
+      {
+        "graded_gt": {
+          "ajus": 2,
+          "enci": 1,
+          "ibu": 3,
+          "mam": 2,
+          "mama": 2
+        },
+        "judged": {
+          "ajus": 2,
+          "aras": 0,
+          "asi": 0,
+          "atribut": 0,
+          "bintoi": 0,
+          "cibubu": 0,
+          "distribusi": 0,
+          "enci": 1,
+          "fakansi": 0,
+          "frei": 0,
+          "ibu": 3,
+          "kamangsilang": 0,
+          "kokole": 0,
+          "kongkoriang": 0,
+          "koyabu": 0,
+          "krawang": 0,
+          "libur": 0,
+          "mam": 2,
+          "mama": 2,
+          "mami": 0,
+          "nibong": 0,
+          "of": 0,
+          "pemai": 0,
+          "perkedel": 0,
+          "ribut": 0,
+          "sibu-sibu": 0,
+          "sloyor": 0,
+          "tete": 0,
+          "ton": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "ibu",
+        "qid": "q_1789000638338_858"
+      },
+      {
+        "graded_gt": {
+          "lantarang": 3
+        },
+        "judged": {
+          "bocor": 0,
+          "idong": 0,
+          "iritasi": 0,
+          "kento": 0,
+          "lantarang": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "Lantarang",
+        "qid": "q_1789000660221_671"
+      },
+      {
+        "graded_gt": {
+          "boke": 3
+        },
+        "judged": {
+          "ampas": 0,
+          "boke": 3,
+          "ragar": 0
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "Boke",
+        "qid": "q_1789000684864_399"
+      },
+      {
+        "graded_gt": {
+          "batik": 1,
+          "kaeng": 3,
+          "kafan": 1
+        },
+        "judged": {
+          "batik": 1,
+          "corak": 0,
+          "kaeng": 3,
+          "kafan": 1,
+          "kanci": 0
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "Kaeng",
+        "qid": "q_1789000709876_952"
+      },
+      {
+        "graded_gt": {
+          "pica": 2,
+          "pica-pica": 3
+        },
+        "judged": {
+          "empedu": 0,
+          "glas": 0,
+          "pica": 2,
+          "pica-pica": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "Pica-pica",
+        "qid": "q_1789000733513_758"
+      },
+      {
+        "graded_gt": {
+          "blakang": 3
+        },
+        "judged": {
+          "blakang": 3,
+          "bola": 0,
+          "jambatan": 0,
+          "kamar": 0
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "blakang",
+        "qid": "q_1789000754284_661"
+      },
+      {
+        "graded_gt": {
+          "sampe": 3
+        },
+        "judged": {
+          "bestek": 0,
+          "empedu": 0,
+          "hela": 0,
+          "kanyang": 0,
+          "sampe": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "sampe",
+        "qid": "q_1789000766409_654"
+      },
+      {
+        "graded_gt": {
+          "kong": 3
+        },
+        "judged": {
+          "bandar": 0,
+          "cukong": 0,
+          "dang": 0,
+          "gargantang": 0,
+          "kangkong": 0,
+          "kolongkong": 0,
+          "kong": 3,
+          "konga": 0,
+          "kongkalikong": 0,
+          "kongkeng": 0,
+          "kongkoriang": 0,
+          "kongsi": 0,
+          "stap": 0,
+          "ubi": 0
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "kong",
+        "qid": "q_1789000786664_815"
+      },
+      {
+        "graded_gt": {
+          "momake": 3
+        },
+        "judged": {
+          "kuti": 0,
+          "momake": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "Momake",
+        "qid": "q_1789000834827_828"
+      },
+      {
+        "graded_gt": {
+          "spanggal": 3
+        },
+        "judged": {
+          "spanggal": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "spanggal",
+        "qid": "q_1789000850738_319"
+      },
+      {
+        "graded_gt": {
+          "pangge": 3
+        },
+        "judged": {
+          "buceri": 0,
+          "daeng": 0,
+          "pangge": 3,
+          "tamang": 0,
+          "tanta": 0
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "pangge",
+        "qid": "q_1789000863398_206"
+      },
+      {
+        "graded_gt": {
+          "bolbak": 1,
+          "malas": 3,
+          "strekel, bastrekel": 1
+        },
+        "judged": {
+          "bolbak": 1,
+          "frei": 0,
+          "malas": 3,
+          "strekel, bastrekel": 1,
+          "tongkadagu": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "malas",
+        "qid": "q_1789000874309_19"
+      },
+      {
+        "graded_gt": {
+          "afker": 1,
+          "keas": 1,
+          "strekel, bastrekel": 2
+        },
+        "judged": {
+          "afker": 1,
+          "kapasitor": 0,
+          "keas": 1,
+          "klakson": 0,
+          "kompyuter": 0,
+          "strekel, bastrekel": 2
+        },
+        "kategori": "Kata Umum",
+        "kueri": "rusak",
+        "qid": "q_1789000890547_680"
+      },
+      {
+        "graded_gt": {
+          "benaut": 2,
+          "fugado": 1
+        },
+        "judged": {
+          "bakera": 0,
+          "batagor": 0,
+          "benaut": 2,
+          "fugado": 1,
+          "hot": 0,
+          "kucae": 0,
+          "wer": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "panas",
+        "qid": "q_1789000947652_279"
+      },
+      {
+        "graded_gt": {
+          "rame": 3
+        },
+        "judged": {
+          "dramer": 0,
+          "gorame": 0,
+          "imlek": 0,
+          "rame": 3,
+          "rameji": 0,
+          "saledo": 0
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "rame",
+        "qid": "q_1789000990420_688"
+      },
+      {
+        "graded_gt": {
+          "badiang": 2,
+          "diang, badiang": 3
+        },
+        "judged": {
+          "arti": 0,
+          "badiang": 2,
+          "blengko": 0,
+          "diang, badiang": 3,
+          "gas": 0,
+          "gra, bagra": 0,
+          "kalem": 0,
+          "ober": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "diam",
+        "qid": "q_1789001006259_529"
+      },
+      {
+        "graded_gt": {
+          "foya": 2,
+          "plang": 3
+        },
+        "judged": {
+          "disel": 0,
+          "foya": 2,
+          "lat": 0,
+          "plang": 3
+        },
+        "kategori": "Kata Umum",
+        "kueri": "lambat",
+        "qid": "q_1789001048898_673"
+      },
+      {
+        "graded_gt": {
+          "ambe": 3,
+          "falo": 1,
+          "kop": 1,
+          "lolo": 1
+        },
+        "judged": {
+          "ambe": 3,
+          "anang-anang": 0,
+          "falo": 1,
+          "jangang": 0,
+          "kabata": 0,
+          "kop": 1,
+          "lolo": 1,
+          "ober": 0,
+          "palakat": 0,
+          "poti-poti": 0,
+          "sambilang": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "ambil",
+        "qid": "q_1789001077991_315"
+      },
+      {
+        "graded_gt": {
+          "barat": 3,
+          "brat": 3
+        },
+        "judged": {
+          "barat": 3,
+          "beban": 0,
+          "brat": 3,
+          "hamil": 0,
+          "kilo": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "berat",
+        "qid": "q_1789001099557_271"
+      },
+      {
+        "graded_gt": {
+          "galap": 3,
+          "glap": 3
+        },
+        "judged": {
+          "galap": 3,
+          "glap": 3,
+          "hugel": 0,
+          "kuti": 0,
+          "lobe": 0,
+          "pake": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "gelap",
+        "qid": "q_1789001113722_402"
+      },
+      {
+        "graded_gt": {
+          "dalang": 3,
+          "dolong": 3
+        },
+        "judged": {
+          "bek": 0,
+          "benen": 0,
+          "bet": 0,
+          "boke": 0,
+          "cikar": 0,
+          "dalang": 3,
+          "dolong": 3,
+          "hawe": 0,
+          "interior": 0,
+          "kap": 0,
+          "krol": 0,
+          "limas": 0,
+          "lusiang": 0,
+          "ngale-ngale": 0,
+          "opas": 0,
+          "sal": 0,
+          "stola": 0,
+          "tinorangsak": 0,
+          "tonaas": 0,
+          "warundak": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "dalam",
+        "qid": "q_1789001137522_491"
+      },
+      {
+        "graded_gt": {
+          "amper": 2,
+          "dekat": 3
+        },
+        "judged": {
+          "amper": 2,
+          "dekat": 3,
+          "kampus": 0,
+          "kolom": 0,
+          "kuala": 0,
+          "malengket": 0,
+          "padede": 0,
+          "paniki": 0,
+          "rete-rete": 0,
+          "ruma": 0,
+          "songko": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "dekat",
+        "qid": "q_1789001156055_396"
+      },
+      {
+        "graded_gt": {
+          "garida": 2,
+          "genit": 3,
+          "maniso": 2,
+          "sosoro": 2
+        },
+        "judged": {
+          "garida": 2,
+          "genit": 3,
+          "maniso": 2,
+          "sosoro": 2
+        },
+        "kategori": "Kata Umum",
+        "kueri": "genit",
+        "qid": "q_1789001165012_473"
+      },
+      {
+        "graded_gt": {
+          "kabata": 2,
+          "manyanyi": 3
+        },
+        "judged": {
+          "donci": 0,
+          "duet": 0,
+          "kabata": 2,
+          "manyanyi": 3,
+          "vals": 0
+        },
+        "kategori": "Kata Umum",
+        "kueri": "menyanyi",
+        "qid": "q_1789001189221_984"
+      },
+      {
+        "graded_gt": {
+          "fugado": 3
+        },
+        "judged": {
+          "fugado": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "fugado",
+        "qid": "q_1789001210678_153"
+      },
+      {
+        "graded_gt": {
+          "nemau": 2,
+          "nimau": 3
+        },
+        "judged": {
+          "nemau": 2,
+          "nimau": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "nimau",
+        "qid": "q_1789001215816_328"
+      },
+      {
+        "graded_gt": {
+          "puru": 3
+        },
+        "judged": {
+          "puru": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "puru",
+        "qid": "q_1789001265920_229"
+      },
+      {
+        "graded_gt": {
+          "kaluar": 3
+        },
+        "judged": {
+          "kaluar": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "kaluar",
+        "qid": "q_1789001276592_925"
+      },
+      {
+        "graded_gt": {
+          "baka-baka sambunyi": 1,
+          "sambunyi": 2
+        },
+        "judged": {
+          "baka-baka sambunyi": 1,
+          "sambunyi": 2
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "sambunyi",
+        "qid": "q_1789001287934_250"
+      },
+      {
+        "graded_gt": {
+          "ampas": 3,
+          "bungkil": 1
+        },
+        "judged": {
+          "ampas": 3,
+          "bungkil": 1
+        },
+        "kategori": "Kata Umum",
+        "kueri": "ampas",
+        "qid": "q_1789001301733_444"
+      },
+      {
+        "graded_gt": {
+          "for": 2,
+          "vor": 1
+        },
+        "judged": {
+          "for": 2,
+          "vor": 1
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "vor",
+        "qid": "q_1789001334780_657"
+      },
+      {
+        "graded_gt": {
+          "bon": 1,
+          "utang": 3
+        },
+        "judged": {
+          "bon": 1,
+          "utang": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "utang",
+        "qid": "q_1789001364374_687"
+      },
+      {
+        "graded_gt": {
+          "dor": 3
+        },
+        "judged": {
+          "dor": 3
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "dor",
+        "qid": "q_1789001380656_417"
+      },
+      {
+        "graded_gt": {
+          "acara": 3,
+          "figura": 1,
+          "resepsi": 1
+        },
+        "judged": {
+          "acara": 3,
+          "figura": 1,
+          "resepsi": 1
+        },
+        "kategori": "Kata Umum",
+        "kueri": "acara",
+        "qid": "q_1789001404419_350"
+      },
+      {
+        "graded_gt": {
+          "kukis": 3,
+          "kukis karanjang": 1
+        },
+        "judged": {
+          "kukis": 3,
+          "kukis karanjang": 1
+        },
+        "kategori": "Kata Lokal",
+        "kueri": "kukis",
+        "qid": "q_1789001420791_214"
+      }
+    ],
+    "top_n": 5,
+    "use_bm25": true
+  }
+]

@@ -1,0 +1,299 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Komparasi Algoritma - Kamus Manado{% endblock %}
+
+{% block extra_head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+{% endblock %}
+
+{% block dashboard_content %}
+    {% if not has_data %}
+    <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 py-5 mt-4">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 5rem;"></i>
+            <h3 class="text-navy fw-bold mt-3 mb-2">Belum Ada Data Evaluasi</h3>
+            <p class="text-body-secondary fs-5 mb-4">Silakan lakukan pengujian pada menu Evaluasi terlebih dahulu.</p>
+            <a href="/dashboard/evaluasi" class="btn btn-navy px-4 py-2 fw-bold"><i class="bi bi-play-fill me-1"></i> Ke Menu Evaluasi</a>
+        </div>
+    </div>
+    {% elif not has_pure %}
+    <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 py-5 mt-4">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 5rem;"></i>
+            <h3 class="text-navy fw-bold mt-3 mb-2">Data BM25 Murni Belum Tersedia</h3>
+            <p class="text-body-secondary fs-5 mb-4">Skenario BM25 murni baru tersedia setelah pengujian ulang pada menu Evaluasi.</p>
+            <a href="/dashboard/evaluasi" class="btn btn-navy px-4 py-2 fw-bold"><i class="bi bi-play-fill me-1"></i> Ke Menu Evaluasi</a>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 px-2 gap-3">
+        <div>
+            <h3 class="fw-bold text-body-emphasis mb-1">Perbandingan Algoritma</h3>
+            <p class="text-body-secondary fs-5 mb-0">Perbandingan: Okapi BM25 (murni) vs Okapi BM25 + Boost vs TF-IDF (Baseline)</p>
+            <div class="mt-2 d-flex flex-wrap gap-3 small text-body-secondary">
+                <span><span class="legend-swatch" style="background:#8b5cf6;"></span>BM25 Murni</span>
+                <span><span class="legend-swatch" style="background:#3b82f6;"></span>BM25 + Boost</span>
+                <span><span class="legend-swatch" style="background:#10b981;"></span>TF-IDF (Baseline)</span>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center bg-body p-2 rounded-3 border border-secondary border-opacity-25 shadow-sm">
+            <select id="batch-select" onchange="changeBatch(this.value, '/dashboard/perbandingan')" class="form-select border-0 bg-body text-body-emphasis fw-bold shadow-none">
+                {% for b in batches %}
+                <option value="{{ b.id }}" {% if selected_batch and selected_batch.group_id == b.id %}selected{% endif %}>{{ b.nama }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- KARTU HIGHLIGHT METRIK UTAMA -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 text-center h-100 py-3" style="border-top: 5px solid #8b5cf6 !important;">
+                <div class="card-body">
+                    <h6 class="text-body-secondary fw-bold text-uppercase mb-2">MAP (BM25+Boost)</h6>
+                    <h1 class="display-4 fw-bolder text-navy mb-0">{{ "%.4f"|format(selected_batch.stats.map_score) }}</h1>
+                    {% if has_tfidf %}
+                    <div class="mt-2 small text-body-secondary fw-bold">vs TF-IDF: {{ "%.4f"|format(selected_batch.stats.tfidf.map_score) }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 text-center h-100 py-3" style="border-top: 5px solid #ec4899 !important;">
+                <div class="card-body">
+                    <h6 class="text-body-secondary fw-bold text-uppercase mb-2">NDCG (BM25+Boost)</h6>
+                    <h1 class="display-4 fw-bolder text-navy mb-0">{{ "%.4f"|format(selected_batch.stats.mean_ndcg) }}</h1>
+                    {% if has_tfidf %}
+                    <div class="mt-2 small text-body-secondary fw-bold">vs TF-IDF: {{ "%.4f"|format(selected_batch.stats.tfidf.mean_ndcg) }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grafik Komparasi -->
+    <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 mb-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4">
+            <h5 class="text-navy fw-bold mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Overall Metric Comparison ({{ selected_batch.stats.total_query }} Kueri)</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="chart-container"><canvas id="comparisonChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- Statistik Distribusi Ground Truth (Audit Top-N) -->
+    {% if selected_batch.gt_stats %}
+    <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 mb-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4">
+            <h5 class="text-navy fw-bold mb-0"><i class="bi bi-bar-chart me-2"></i>Distribusi Jumlah Ground-Truth (Audit Top-N = {{ selected_batch.top_n }})</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="row text-center g-3">
+                <div class="col-6 col-md-3">
+                    <div class="border rounded-3 py-3">
+                        <div class="fs-4 fw-bold text-body-emphasis">{{ selected_batch.gt_stats.min }}</div>
+                        <div class="small text-body-secondary">GT Minimum</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="border rounded-3 py-3">
+                        <div class="fs-4 fw-bold text-body-emphasis">{{ selected_batch.gt_stats.max }}</div>
+                        <div class="small text-body-secondary">GT Maksimum</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="border rounded-3 py-3">
+                        <div class="fs-4 fw-bold text-body-emphasis">{{ selected_batch.gt_stats.mean }}</div>
+                        <div class="small text-body-secondary">Rata-rata GT</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="border rounded-3 py-3 {% if selected_batch.gt_stats.count_gt_gt_topn > 0 %}border-danger{% endif %}">
+                        <div class="fs-4 fw-bold {% if selected_batch.gt_stats.count_gt_gt_topn > 0 %}text-danger{% else %}text-body-emphasis{% endif %}">{{ selected_batch.gt_stats.count_gt_gt_topn }}</div>
+                        <div class="small text-body-secondary">Kueri dengan GT &gt; Top-N</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabel Analisis Deviasi (Fokus NDCG) -->
+    <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 overflow-hidden mb-5">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4 d-flex justify-content-between align-items-center">
+            <h5 class="text-navy fw-bold mb-0"><i class="bi bi-table me-2"></i>Analisis Kinerja per Kueri (Fokus NDCG)</h5>
+            <button class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="exportToExcelStyled('hiddenExcelTable', 'Laporan_Komparasi_Algoritma.xls')">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Data Komparasi format XLS
+            </button>
+        </div>
+        <div class="table-responsive" style="max-height: 600px;">
+            <table class="table table-hover align-middle mb-0 table-custom text-center" id="komparasiTable">
+                <thead class="table-light sticky-top shadow-sm">
+                    <tr>
+                        <th class="text-start ps-4">Teks Kueri</th>
+                        <th>BM25 Murni NDCG</th>
+                        <th>BM25+Boost NDCG</th>
+                        {% if has_tfidf %}<th>TF-IDF NDCG</th>{% endif %}
+                        <th>Skor Tertinggi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in selected_batch.queries %}
+                    <tr>
+                        <td class="text-start ps-4 fw-bold text-navy">{{ q.kueri }}</td>
+                        <td><span class="badge" style="background-color: #8b5cf6; font-size: 0.9em;">{{ "%.2f"|format(q.pure_metrics.ndcg) }}</span></td>
+                        <td><span class="badge" style="background-color: #3b82f6; font-size: 0.9em;">{{ "%.2f"|format(q.ndcg) }}</span></td>
+                        {% if has_tfidf %}
+                        <td><span class="badge" style="background-color: #10b981; font-size: 0.9em;">{{ "%.2f"|format(q.tfidf_metrics.ndcg) }}</span></td>
+                        {% endif %}
+                        <td class="fs-6">
+                            {% set p = q.pure_metrics.ndcg %}
+                            {% set b = q.ndcg %}
+                            {% set tf = q.tfidf_metrics.ndcg if has_tfidf else -1 %}
+
+                            {% if p >= b and p >= tf %}
+                                <span class="metric-diff positive"><i class="bi bi-trophy-fill"></i> BM25 Murni ({{ "%.2f"|format(p) }})</span>
+                            {% elif b >= p and b >= tf %}
+                                <span class="metric-diff positive"><i class="bi bi-trophy-fill"></i> BM25+Boost ({{ "%.2f"|format(b) }})</span>
+                            {% elif tf >= p and tf >= b %}
+                                <span class="metric-diff positive"><i class="bi bi-trophy-fill"></i> TF-IDF ({{ "%.2f"|format(tf) }})</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TABEL EXCEL KOMPARASI ALGORITMA -->
+    <table id="hiddenExcelTable" style="display: none; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th rowspan="2" style="background-color: #e2e8f0; border: 1px solid black; text-align: center; vertical-align: middle;">No</th>
+                <th rowspan="2" style="background-color: #e2e8f0; border: 1px solid black; text-align: center; vertical-align: middle;">Kueri Uji</th>
+                <th colspan="2" style="background-color: #c4b5fd; border: 1px solid black; text-align: center; font-weight: bold;">BM25 Murni</th>
+                <th colspan="2" style="background-color: #93c5fd; border: 1px solid black; text-align: center; font-weight: bold;">BM25 + Boost</th>
+                {% if has_tfidf %}
+                <th colspan="2" style="background-color: #a7f3d0; border: 1px solid black; text-align: center; font-weight: bold;">TF-IDF (Baseline)</th>
+                {% endif %}
+            </tr>
+            <tr>
+                <th style="background-color: #ede9fe; border: 1px solid black; text-align: center;">MAP</th>
+                <th style="background-color: #ede9fe; border: 1px solid black; text-align: center;">NDCG</th>
+
+                <th style="background-color: #dbeafe; border: 1px solid black; text-align: center;">MAP</th>
+                <th style="background-color: #dbeafe; border: 1px solid black; text-align: center;">NDCG</th>
+
+                {% if has_tfidf %}
+                <th style="background-color: #d1fae5; border: 1px solid black; text-align: center;">MAP</th>
+                <th style="background-color: #d1fae5; border: 1px solid black; text-align: center;">NDCG</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for q in selected_batch.queries %}
+            <tr>
+                <td style="border: 1px solid black; text-align: center;">{{ loop.index }}</td>
+                <td style="border: 1px solid black; text-align: left;">{{ q.kueri }}</td>
+
+                <td style="border: 1px solid black; text-align: center;">{{ "%.4f"|format(q.pure_metrics.ap_score) }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.4f"|format(q.pure_metrics.ndcg) }}</td>
+
+                <td style="border: 1px solid black; text-align: center; font-weight: bold;">{{ "%.4f"|format(q.ap_score) }}</td>
+                <td style="border: 1px solid black; text-align: center; font-weight: bold;">{{ "%.4f"|format(q.ndcg) }}</td>
+
+                {% if has_tfidf %}
+                <td style="border: 1px solid black; text-align: center;">{{ "%.4f"|format(q.tfidf_metrics.ap_score) }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.4f"|format(q.tfidf_metrics.ndcg) }}</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="2" style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f8fafc;">MEAN (RATA-RATA)</td>
+
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f8fafc;">{{ "%.4f"|format(selected_batch.stats.pure.map_score) }}</td>
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f8fafc;">{{ "%.4f"|format(selected_batch.stats.pure.mean_ndcg) }}</td>
+
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f8fafc;">{{ "%.4f"|format(selected_batch.stats.map_score) }}</td>
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f8fafc;">{{ "%.4f"|format(selected_batch.stats.mean_ndcg) }}</td>
+
+                {% if has_tfidf %}
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f8fafc;">{{ "%.4f"|format(selected_batch.stats.tfidf.map_score) }}</td>
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f8fafc;">{{ "%.4f"|format(selected_batch.stats.tfidf.mean_ndcg) }}</td>
+                {% endif %}
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if has_pure %}
+<script id="stats-data" type="application/json">{{ selected_batch.stats|tojson }}</script>
+<script>
+    const statsData = JSON.parse(document.getElementById('stats-data').textContent);
+
+    function renderComparisonChart() {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const colorText = isDark ? '#cbd5e1' : '#475569';
+        const colorGrid = isDark ? '#334155' : '#e2e8f0';
+
+        Chart.defaults.color = colorText;
+        Chart.defaults.borderColor = colorGrid;
+        Chart.register(ChartDataLabels);
+
+        const datasets = [
+            {
+                label: 'BM25 Murni',
+                data: [statsData.pure.avg_precision, statsData.pure.avg_recall, statsData.pure.map_score, statsData.pure.mean_ndcg],
+                backgroundColor: '#8b5cf6', borderRadius: 4, barPercentage: 0.7, categoryPercentage: 0.8
+            },
+            {
+                label: 'BM25 + Boost',
+                data: [statsData.avg_precision, statsData.avg_recall, statsData.map_score, statsData.mean_ndcg],
+                backgroundColor: '#3b82f6', borderRadius: 4, barPercentage: 0.7, categoryPercentage: 0.8
+            }
+        ];
+
+        if (statsData.tfidf) {
+            datasets.push({
+                label: 'TF-IDF (Baseline)',
+                data: [statsData.tfidf.avg_precision, statsData.tfidf.avg_recall, statsData.tfidf.map_score, statsData.tfidf.mean_ndcg],
+                backgroundColor: '#10b981', borderRadius: 4, barPercentage: 0.7, categoryPercentage: 0.8
+            });
+        }
+
+        const ctx = document.getElementById('comparisonChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: { labels: ['Precision', 'Recall', 'MAP', 'NDCG'], datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 35 } },
+                plugins: {
+                    datalabels: {
+                        anchor: 'end', align: 'end', color: colorText,
+                        font: { family: 'Segoe UI', size: 14, weight: 'bold' },
+                        formatter: function(value) { return value.toFixed(4); }
+                    },
+                    legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10, font: { family: 'Segoe UI', size: 13, weight: 'bold' } } }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 1.15, ticks: { font: { weight: 'bold' } } },
+                    x: { grid: { display: false }, ticks: { font: { weight: 'bold', size: 14 } } }
+                }
+            }
+        });
+    }
+
+    renderComparisonChart();
+
+    function onThemeChange() { window.location.reload(); }
+    // changeBatch & exportToExcelStyled disediakan oleh ui.js
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,528 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Uji Kueri BM25 Murni | Sistem Evaluasi Kamus Manado{% endblock %}
+
+{% block extra_head %}
+<style>
+    .param-input { max-width: 100px; }
+    .chart-img { max-width: 100%; background-color: #ffffff; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 0.75rem; }
+    .kpi-val { font-weight: 700; }
+    .c-ndcg { color: #ec4899; }
+    .c-f1 { color: #06b6d4; }
+    .c-map { color: #8b5cf6; }
+    .c-recall { color: #2563eb; }
+    .c-precision { color: #1e3a8a; }
+    .c-mrr { color: #64748b; }
+    @media print {
+        .no-print { display: none !important; }
+        .card { break-inside: avoid; }
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+    {% if not has_drafts %}
+    <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 py-5 mt-4">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-file-earmark-break text-body-tertiary" style="font-size: 5rem;"></i>
+            <h3 class="text-navy fw-bold mt-3 mb-2">Belum Ada Draft Kueri</h3>
+            <p class="text-body-secondary fs-5 mb-0">Buat draft kueri beserta ground truth pada menu Evaluasi terlebih dahulu.</p>
+        </div>
+    </div>
+    {% elif not selected %}
+    <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 py-5 mt-4">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-collection text-body-tertiary" style="font-size: 5rem;"></i>
+            <h3 class="text-navy fw-bold mt-3 mb-2">Pilih Draft Kueri</h3>
+            <p class="text-body-secondary fs-5 mb-4">Pilih draft untuk melihat hasil uji BM25 Murni.</p>
+            <select onchange="switchDraftBM25M(this.value)" class="form-select w-auto shadow-none mx-auto">
+                <option value="" selected disabled>-- Pilih Draft --</option>
+                {% for o in options %}
+                <option value="{{ o.id }}">{{ o.nama }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    {% else %}
+
+    <!-- ===== HEADER + PEMILIH DRAFT + TOMBOL EKSPOR ===== -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-3 px-2 gap-3">
+        <div>
+            <h3 class="fw-bold text-body-emphasis mb-1">Uji Kueri BM25 Murni</h3>
+            <p class="text-body-secondary fs-5 mb-0">
+                Draft: <strong>{{ selected.group_name }}</strong> &mdash; Top-{{ top_n }}, k1={{ k1 }}, b={{ b }}
+            </p>
+        </div>
+        <div class="no-print d-flex flex-wrap gap-2 align-items-center bg-body p-2 rounded-3 border border-secondary border-opacity-25 shadow-sm">
+            <select onchange="switchDraftBM25M(this.value)" class="form-select border-0 bg-body text-body-emphasis fw-bold shadow-none" style="min-width: 220px;">
+                {% for o in options %}
+                <option value="{{ o.id }}" {% if selected.group_id == o.id %}selected{% endif %}>{{ o.nama }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="exportExcelBM25Murni()">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
+            </button>
+            <button class="btn btn-sm btn-danger fw-bold px-3 shadow-sm" onclick="exportPDFBM25Murni()">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Export PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== FORM PARAMETER (Top-N, k1, b) ===== -->
+    <form method="get" action="/BM25_murni.html" class="no-print d-flex flex-wrap align-items-end gap-2 mb-4 px-2">
+        <input type="hidden" name="draft" value="{{ selected.group_id }}">
+        <div>
+            <label class="form-label small fw-bold mb-1">Top-N</label>
+            <input type="number" name="top_n" min="1" max="500" value="{{ top_n }}" class="form-control form-control-sm param-input">
+        </div>
+        <div>
+            <label class="form-label small fw-bold mb-1">k1</label>
+            <input type="number" name="k1" min="0" step="0.1" value="{{ k1 }}" class="form-control form-control-sm param-input">
+        </div>
+        <div>
+            <label class="form-label small fw-bold mb-1">b</label>
+            <input type="number" name="b" min="0" max="1" step="0.05" value="{{ b }}" class="form-control form-control-sm param-input">
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary fw-bold"><i class="bi bi-arrow-repeat me-1"></i> Terapkan</button>
+    </form>
+
+    {% if queries_eval %}
+
+    <!-- ===== KPI RATA-RATA (Murni vs Boost) ===== -->
+    {% if mean_pure %}
+    {% set kartu_metrik = [
+        ('Rata-rata NDCG', 'ndcg', 'c-ndcg'),
+        ('Rata-rata F1-Score', 'f1_score', 'c-f1'),
+        ('Rata-rata MAP', 'ap_score', 'c-map'),
+        ('Rata-rata Recall', 'recall', 'c-recall'),
+        ('Rata-rata Precision', 'precision', 'c-precision'),
+        ('Rata-rata MRR', 'mrr', 'c-mrr')
+    ] %}
+    <div class="row g-3 mb-4">
+        {% for label, kunci, kelas in kartu_metrik %}
+        <div class="col-xl-2 col-lg-4 col-sm-6">
+            <div class="card kpi-card h-100 bg-body shadow-sm border-0 rounded-3">
+                <div class="card-body p-3">
+                    <p class="text-body-secondary text-uppercase fw-bold small mb-1" style="font-size: 0.7rem;">{{ label }} (Murni)</p>
+                    <h3 class="kpi-val mb-1 {{ kelas }}">{{ '%.4f'|format(mean_pure[kunci]) }}</h3>
+                    <p class="small text-body-secondary mb-0">
+                        +Boost: {{ '%.4f'|format(mean_boost[kunci]) }}
+                        <span class="fw-bold">({{ '%+.4f'|format(mean_pure[kunci] - mean_boost[kunci]) }})</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ===== GRAFIK BATANG PYTHON (matplotlib -> PNG HD) ===== -->
+    <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 mb-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="text-navy fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Grafik Batang &mdash; PNG HD (matplotlib)</h5>
+            <div class="no-print d-flex flex-wrap gap-2">
+                <select id="chartType" class="form-select form-select-sm border-0 shadow-none fw-bold" style="min-width: 300px;" onchange="reloadBM25Chart()">
+                    <option value="category_map_ndcg" selected>Rata-rata MAP &amp; NDCG per Kategori</option>
+                    <option value="mean">Rata-rata Semua Metrik (Murni vs Boost)</option>
+                    <option value="ndcg_compare_per_query">NDCG per Kueri (Murni vs Bobot Leksikal)</option>
+                    <option value="map_compare_per_query">MAP per Kueri (Murni vs Bobot Leksikal)</option>
+                    <option value="ndcg_per_query">NDCG per Kueri (Murni)</option>
+                    <option value="f1_score_per_query">F1-Score per Kueri (Murni)</option>
+                    <option value="precision_per_query">Precision per Kueri (Murni)</option>
+                    <option value="recall_per_query">Recall per Kueri (Murni)</option>
+                    <option value="ap_score_per_query">MAP per Kueri (Murni)</option>
+                    <option value="mrr_per_query">MRR per Kueri (Murni)</option>
+                    <option value="category">Rata-rata NDCG per Kategori (Murni vs Boost)</option>
+                </select>
+                <button class="btn btn-sm btn-outline-primary fw-bold" onclick="reloadBM25Chart()" title="Render ulang grafik">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn btn-sm btn-primary fw-bold px-3" onclick="downloadBM25Chart()">
+                    <i class="bi bi-download me-1"></i> Download PNG
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-4 text-center">
+            <img id="bm25ChartImg" alt="Grafik BM25 Murni (render Python)" class="img-fluid chart-img"
+                 onerror="document.getElementById('bm25ChartError').style.display='block';">
+            <p id="bm25ChartError" class="text-danger small mt-2 mb-1" style="display:none;">
+                Grafik gagal dimuat. Buka langsung
+                <code>/BM25_murni/chart.png?type=category_map_ndcg</code> untuk melihat error aslinya.
+                Pastikan <code>matplotlib</code> terpasang
+                (<code>pip install matplotlib</code>), lalu restart server.
+            </p>
+            <p class="text-body-secondary small mt-2 mb-0">
+                PNG dibuat langsung oleh <strong>Python di server</strong> pada 300 dpi &mdash;
+                tanpa judul di dalam gambar, keterangan hanya legenda, siap disisipkan ke artikel.
+            </p>
+        </div>
+    </div>
+
+    <!-- ===== TABEL RINGKASAN PER KUERI (BM25 MURNI) ===== -->
+    <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4">
+            <h5 class="text-navy fw-bold mb-0"><i class="bi bi-table me-2"></i>Log Pengujian Kueri &mdash; BM25 Murni</h5>
+        </div>
+        <div class="table-responsive" style="max-height: 500px;">
+            <table class="table table-hover align-middle mb-0 table-custom">
+                <thead class="table-light sticky-top shadow-sm">
+                    <tr>
+                        <th class="ps-4">No</th>
+                        <th>Teks Kueri</th>
+                        <th>Kategori</th>
+                        <th class="text-center">GT Ditemukan</th>
+                        <th class="text-center">Precision</th>
+                        <th class="text-center">Recall</th>
+                        <th class="text-center">F1-Score</th>
+                        <th class="text-center">MAP</th>
+                        <th class="text-center">NDCG</th>
+                        <th class="text-center border-start">TP</th>
+                        <th class="text-center">FP</th>
+                        <th class="text-center">FN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in queries_eval %}
+                    <tr>
+                        <td class="ps-4">{{ loop.index }}</td>
+                        <td class="fw-bold text-navy">{{ q.kueri }}</td>
+                        <td><span class="badge bg-secondary text-white">{{ q.kategori }}</span></td>
+                        <td class="text-center fw-bold">{{ q.gt_found_pure }}/{{ q.total_gt }}</td>
+                        <td class="text-center"><span class="badge bg-navy fw-medium fs-6">{{ '%.2f'|format(q.m_pure.precision) }}</span></td>
+                        <td class="text-center"><span class="badge bg-primary fw-medium fs-6">{{ '%.2f'|format(q.m_pure.recall) }}</span></td>
+                        <td class="text-center"><span class="badge fw-medium fs-6" style="background-color:#06b6d4;color:#fff;">{{ '%.2f'|format(q.m_pure.f1_score) }}</span></td>
+                        <td class="text-center"><span class="badge fw-medium fs-6" style="background-color:#8b5cf6;color:#fff;">{{ '%.2f'|format(q.m_pure.ap_score) }}</span></td>
+                        <td class="text-center"><span class="badge fw-bold fs-6" style="background-color:#ec4899;color:#fff;">{{ '%.2f'|format(q.m_pure.ndcg) }}</span></td>
+                        <td class="text-center border-start fw-bold text-body">{{ q.m_pure.TP }}</td>
+                        <td class="text-center fw-bold text-danger">{{ q.m_pure.FP }}</td>
+                        <td class="text-center fw-bold text-warning">{{ q.m_pure.FN }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if mean_pure %}
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="4" class="ps-4 fw-bold text-body-emphasis">MEAN ({{ queries_eval|length }} KUERI)</td>
+                        <td class="text-center fw-bold">{{ '%.4f'|format(mean_pure.precision) }}</td>
+                        <td class="text-center fw-bold">{{ '%.4f'|format(mean_pure.recall) }}</td>
+                        <td class="text-center fw-bold">{{ '%.4f'|format(mean_pure.f1_score) }}</td>
+                        <td class="text-center fw-bold">{{ '%.4f'|format(mean_pure.ap_score) }}</td>
+                        <td class="text-center fw-bold">{{ '%.4f'|format(mean_pure.ndcg) }}</td>
+                        <td class="text-center border-start"></td><td></td><td></td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== DETAIL PER KUERI ===== -->
+    <h4 class="fw-bold text-body-emphasis mb-3 px-2">Detail Per Kueri (Top-{{ top_n }})</h4>
+    {% for q in queries_eval %}
+    <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 mb-3">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <span class="fw-bold text-navy">{{ loop.index }}. {{ q.kueri }}</span>
+                <span class="badge bg-secondary text-white ms-2">{{ q.kategori }}</span>
+            </div>
+            <span class="badge bg-secondary bg-opacity-10 text-body border border-secondary border-opacity-25">
+                GT ditemukan &mdash; Murni: {{ q.gt_found_pure }}/{{ q.total_gt }} | Boost: {{ q.gt_found_boost }}/{{ q.total_gt }}
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="px-3 pt-3">
+                {% for g in q.gt_display %}
+                <span class="badge bg-success bg-opacity-75 me-1 mb-1">{{ g.kata }} <span class="opacity-75">({{ g.score }})</span></span>
+                {% endfor %}
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0 table-custom">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Rank Murni</th><th>Kata</th><th>Arti</th>
+                            <th class="text-center">Skor Murni</th>
+                            <th class="text-center border-start">Rank Boost</th>
+                            <th class="text-center">Skor Boost</th>
+                            <th class="text-center">GT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for en in q.entries %}
+                        <tr>
+                            <td class="fw-bold">{{ en.pure_rank }}</td>
+                            <td class="fw-bold text-navy">{{ en.Kata }}</td>
+                            <td class="text-body-secondary">{{ en.Arti }}</td>
+                            <td class="text-center">{{ '%.4f'|format(en.pure_score) }}</td>
+                            <td class="text-center border-start">{{ en.boost_rank }}</td>
+                            <td class="text-center">{{ '%.4f'|format(en.boost_score) }}</td>
+                            <td class="text-center">{% if en.gt_score > 0 %}<span class="badge bg-success">{{ en.gt_score }}</span>{% else %}<span class="text-body-tertiary">0</span>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 py-5 mb-5">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-question-circle text-body-tertiary" style="font-size: 5rem;"></i>
+            <h3 class="text-navy fw-bold mt-3 mb-2">Draft Tanpa Kueri Valid</h3>
+            <p class="text-body-secondary fs-5 mb-0">Draft "{{ selected.group_name }}" tidak memiliki kueri yang bisa dievaluasi.</p>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if selected and queries_eval %}
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+<script id="bm25m-data" type="application/json">{{ queries_eval|tojson }}</script>
+<script id="bm25m-mean" type="application/json">{{ mean_pure|tojson }}</script>
+<script id="bm25m-meta" type="application/json">{{ {'id': selected.group_id, 'nama': selected.group_name, 'top_n': top_n, 'k1': k1, 'b': b, 'jumlah': queries_eval|length}|tojson }}</script>
+
+<script>
+    const BM25M_DATA = JSON.parse(document.getElementById('bm25m-data').textContent);
+    const BM25M_MEAN = JSON.parse(document.getElementById('bm25m-mean').textContent) || {};
+    const BM25M_META = JSON.parse(document.getElementById('bm25m-meta').textContent);
+
+    function switchDraftBM25M(id) {
+        if (!id) return;
+        const p = new URLSearchParams(window.location.search);
+        p.set('draft', id);
+        window.location.href = window.location.pathname + '?' + p.toString();
+    }
+
+    function bm25mSafeName(s) {
+        return String(s || '').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'Draft';
+    }
+
+    function bm25mF4(v) {
+        const n = Number(v);
+        return isFinite(n) ? n.toFixed(4) : '-';
+    }
+
+    function bm25mAvg(key) {
+        if (!BM25M_DATA.length) return 0;
+        return BM25M_DATA.reduce((s, q) => s + Number((q.m_pure || {})[key] || 0), 0) / BM25M_DATA.length;
+    }
+
+    function bm25mEsc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    /* ================= GRAFIK PYTHON (MATPLOTLIB) ================= */
+    function bm25ChartParams(extra) {
+        const p = new URLSearchParams();
+        p.set('draft', BM25M_META.id);
+        p.set('top_n', BM25M_META.top_n);
+        p.set('k1', BM25M_META.k1);
+        p.set('b', BM25M_META.b);
+        const sel = document.getElementById('chartType');
+        p.set('type', sel ? sel.value : 'category_map_ndcg');
+        Object.entries(extra || {}).forEach(([k, v]) => p.set(k, v));
+        return p;
+    }
+
+    function reloadBM25Chart() {
+        const img = document.getElementById('bm25ChartImg');
+        const err = document.getElementById('bm25ChartError');
+        if (!img) return;
+        if (err) err.style.display = 'none';
+        img.src = '/BM25_murni/chart.png?' + bm25ChartParams({ t: Date.now() }).toString();
+    }
+
+    function downloadBM25Chart() {
+        const sel = document.getElementById('chartType');
+        const tipe = sel ? sel.value : 'category_map_ndcg';
+        const a = document.createElement('a');
+        a.href = '/BM25_murni/chart.png?' + bm25ChartParams({ download: '1', t: Date.now() }).toString();
+        a.download = 'grafik_bm25_' + tipe + '.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    // Ambil grafik yang sedang tampil sebagai data-URL (untuk disisipkan ke PDF)
+    async function bm25ChartDataURL() {
+        const img = document.getElementById('bm25ChartImg');
+        if (!img) return null;
+        if (!img.complete || !img.naturalWidth) {
+            try { await img.decode(); } catch (e) { return null; }
+        }
+        try {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth;
+            c.height = img.naturalHeight;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.drawImage(img, 0, 0);
+            return { data: c.toDataURL('image/png'), w: c.width, h: c.height };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // Render grafik pertama saat halaman siap
+    reloadBM25Chart();
+
+    /* ================= EXPORT EXCEL ================= */
+    function exportExcelBM25Murni() {
+        const TH = 'background-color:#1e3a8a;color:#ffffff;border:1px solid #000000;padding:5px;font-weight:bold;';
+        const TD = 'border:1px solid #000000;padding:4px;text-align:center;vertical-align:middle;';
+        const TDL = 'border:1px solid #000000;padding:4px;text-align:left;vertical-align:middle;';
+        const MEANBG = 'background-color:#f1f5f9;font-weight:bold;';
+
+        let rows = BM25M_DATA.map((q, i) => {
+            const m = q.m_pure || {};
+            return '<tr>'
+                + '<td style="' + TD + '">' + (i + 1) + '</td>'
+                + '<td style="' + TDL + '">' + bm25mEsc(q.kueri) + '</td>'
+                + '<td style="' + TD + '">' + bm25mEsc(q.kategori) + '</td>'
+                + '<td style="' + TD + '">' + m.TP + '</td>'
+                + '<td style="' + TD + '">' + m.FP + '</td>'
+                + '<td style="' + TD + '">' + m.FN + '</td>'
+                + '<td style="' + TD + '">' + bm25mF4(m.precision) + '</td>'
+                + '<td style="' + TD + '">' + bm25mF4(m.recall) + '</td>'
+                + '<td style="' + TD + 'font-weight:bold;">' + bm25mF4(m.f1_score) + '</td>'
+                + '<td style="' + TD + '">' + bm25mF4(m.ap_score) + '</td>'
+                + '<td style="' + TD + '">' + bm25mF4(m.ndcg) + '</td>'
+                + '</tr>';
+        }).join('');
+
+        if (BM25M_MEAN.precision !== undefined) {
+            rows += '<tr>'
+                + '<td colspan="6" style="' + TD + MEANBG + '">MEAN (RATA-RATA)</td>'
+                + '<td style="' + TD + MEANBG + '">' + bm25mF4(BM25M_MEAN.precision) + '</td>'
+                + '<td style="' + TD + MEANBG + '">' + bm25mF4(BM25M_MEAN.recall) + '</td>'
+                + '<td style="' + TD + MEANBG + '">' + bm25mF4(BM25M_MEAN.f1_score) + '</td>'
+                + '<td style="' + TD + MEANBG + '">' + bm25mF4(BM25M_MEAN.ap_score) + '</td>'
+                + '<td style="' + TD + MEANBG + '">' + bm25mF4(BM25M_MEAN.ndcg) + '</td>'
+                + '</tr>';
+        }
+
+        const header = '<tr>'
+            + '<th style="' + TH + '">No</th><th style="' + TH + '">Query</th><th style="' + TH + '">Kategori</th>'
+            + '<th style="' + TH + '">TP</th><th style="' + TH + '">FP</th><th style="' + TH + '">FN</th>'
+            + '<th style="' + TH + '">Precision</th><th style="' + TH + '">Recall</th><th style="' + TH + '">F1-Score</th>'
+            + '<th style="' + TH + '">MAP</th><th style="' + TH + '">NDCG</th></tr>';
+
+        const table = '<table border="1"><thead>' + header + '</thead><tbody>' + rows + '</tbody></table>';
+        const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'
+                   + '<head><meta charset="UTF-8"></head><body>' + table + '</body></html>';
+
+        const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const fname = 'Uji_Kueri_BM25_Murni_' + bm25mSafeName(BM25M_META.nama) + '.xls';
+        a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    /* ================= EXPORT PDF (termasuk grafik Python) ================= */
+    async function exportPDFBM25Murni() {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            alert('Pustaka PDF tidak termuat (cek koneksi internet). Cadangan: tekan Ctrl+P lalu pilih "Save as PDF".');
+            window.print();
+            return;
+        }
+        const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+        if (typeof doc.autoTable !== 'function') {
+            alert('Plugin tabel PDF tidak termuat. Cadangan: tekan Ctrl+P lalu pilih "Save as PDF".');
+            window.print();
+            return;
+        }
+        const W = doc.internal.pageSize.getWidth();
+        const H = doc.internal.pageSize.getHeight();
+
+        const footer = () => {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(120);
+            doc.text('Sistem Evaluasi Kamus Manado — Uji Kueri BM25 Murni', 40, H - 20);
+            doc.text('Halaman ' + doc.internal.getNumberOfPages(), W - 40, H - 20, { align: 'right' });
+            doc.setTextColor(0);
+        };
+
+        // ---- Halaman 1: ringkasan per kueri (BM25 Murni) ----
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+        doc.text('Laporan Uji Kueri BM25 Murni', 40, 40);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+        doc.text('Draft: ' + BM25M_META.nama + '   |   Top-N: ' + BM25M_META.top_n +
+                 '   |   k1: ' + BM25M_META.k1 + '   |   b: ' + BM25M_META.b +
+                 '   |   Total Kueri: ' + BM25M_META.jumlah, 40, 56);
+        doc.text('Dicetak: ' + new Date().toLocaleString('id-ID'), 40, 68);
+
+        const head = [['No', 'Query', 'Kategori', 'GT', 'TP', 'FP', 'FN', 'Precision', 'Recall', 'F1-Score', 'MAP', 'NDCG']];
+        const body = BM25M_DATA.map((q, i) => {
+            const m = q.m_pure || {};
+            return [i + 1, q.kueri, q.kategori, (q.gt_found_pure || 0) + '/' + (q.total_gt || 0),
+                    m.TP, m.FP, m.FN, bm25mF4(m.precision), bm25mF4(m.recall),
+                    bm25mF4(m.f1_score), bm25mF4(m.ap_score), bm25mF4(m.ndcg)];
+        });
+        const foot = [['', '', 'MEAN', '',
+                       bm25mAvg('TP').toFixed(2), bm25mAvg('FP').toFixed(2), bm25mAvg('FN').toFixed(2),
+                       bm25mF4(BM25M_MEAN.precision), bm25mF4(BM25M_MEAN.recall), bm25mF4(BM25M_MEAN.f1_score),
+                       bm25mF4(BM25M_MEAN.ap_score), bm25mF4(BM25M_MEAN.ndcg)]];
+
+        doc.autoTable({
+            startY: 80, head: head, body: body, foot: foot, theme: 'grid',
+            styles: { fontSize: 7.5, cellPadding: 3, overflow: 'linebreak' },
+            headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
+            footStyles: { fillColor: [241, 245, 249], textColor: 30, fontStyle: 'bold' },
+            columnStyles: { 0: { cellWidth: 26 }, 1: { cellWidth: 130 }, 2: { cellWidth: 80 }, 3: { cellWidth: 40 } },
+            didDrawPage: footer
+        });
+
+        // ---- Halaman 2: GRAFIK PYTHON (matplotlib) disisipkan sebagai gambar ----
+        const chart = await bm25ChartDataURL();
+        if (chart) {
+            doc.addPage();
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+            const sel = document.getElementById('chartType');
+            const tipe = sel ? sel.options[sel.selectedIndex].text : 'Rata-rata MAP & NDCG per Kategori';
+            doc.text('Grafik: ' + tipe, 40, 40);
+            const iw = W - 80;
+            doc.addImage(chart.data, 'PNG', 40, 56, iw, iw * (chart.h / chart.w));
+            footer();
+        }
+
+        // ---- Halaman berikutnya: detail Top-N per kueri ----
+        BM25M_DATA.forEach(q => {
+            if (!q.entries || !q.entries.length) return;
+            doc.addPage();
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+            doc.text('Detail Top-' + BM25M_META.top_n + ' — Kueri: "' + q.kueri + '"', 40, 40);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+            const gtText = (q.gt_display || []).map(g => g.kata + ' (' + g.score + ')').join(', ') || '-';
+            const gtLines = doc.splitTextToSize('Ground Truth: ' + gtText, W - 80);
+            doc.text(gtLines, 40, 54);
+
+            const dHead = [['Rank Murni', 'Kata', 'Arti', 'Skor Murni', 'Rank Boost', 'Skor Boost', 'GT']];
+            const dBody = q.entries.map(en => [en.pure_rank, en.Kata || '', en.Arti || '',
+                bm25mF4(en.pure_score),
+                (en.boost_rank === '-' || en.boost_rank === undefined) ? '-' : en.boost_rank,
+                bm25mF4(en.boost_score), en.gt_score]);
+
+            doc.autoTable({
+                startY: 60 + gtLines.length * 10,
+                head: dHead, body: dBody, theme: 'grid',
+                styles: { fontSize: 7.5, cellPadding: 3, overflow: 'linebreak' },
+                headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
+                columnStyles: { 0: { cellWidth: 52 }, 1: { cellWidth: 100 }, 3: { cellWidth: 62 }, 4: { cellWidth: 56 }, 5: { cellWidth: 62 }, 6: { cellWidth: 28 } },
+                didDrawPage: footer
+            });
+        });
+
+        doc.save('Uji_Kueri_BM25_Murni_' + bm25mSafeName(BM25M_META.nama) + '.pdf');
+    }
+</script>
+{% endif %}
+{% endblock %}

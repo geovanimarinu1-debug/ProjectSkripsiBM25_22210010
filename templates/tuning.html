@@ -1,0 +1,328 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Tuning Parameter BM25 | Sistem Evaluasi Kamus Manado{% endblock %}
+
+{% block dashboard_content %}
+    {% if not has_data %}
+    <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 py-5 mt-4">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 5rem;"></i>
+            <h3 class="text-navy fw-bold mt-3 mb-2">Belum Ada Data Tuning</h3>
+            <p class="text-body-secondary fs-5 mb-4">Silakan lakukan kalkulasi pada menu Evaluasi terlebih dahulu. Sistem akan otomatis melakukan tuning saat eksekusi.</p>
+            <a href="/dashboard/evaluasi" class="btn btn-navy px-4 py-2 fw-bold"><i class="bi bi-play-fill me-1"></i> Ke Menu Evaluasi</a>
+            <div class="mt-3">
+                <form method="POST" action="/reset_evaluasi" onsubmit="return confirm('Hapus SEMUA data evaluasi dan draft? Semua sesi akan hilang permanen.');" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger px-4 py-2 fw-bold"><i class="bi bi-trash3 me-1"></i> Reset Semua Data Evaluasi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% elif not selected_batch.tuning_data %}
+    <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 py-5 mt-4">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 5rem;"></i>
+            <h3 class="text-navy fw-bold mt-3 mb-2">Sesi Lama Tidak Memiliki Data Tuning</h3>
+            <p class="text-body-secondary fs-5 mb-2">Sesi ini dievaluasi sebelum fitur auto-tuning diaktifkan. Silakan re-evaluasi kembali sesi ini melalui panel evaluasi.</p>
+            <p class="text-body-secondary small mb-4">
+                Sesi aktif: <strong>{{ selected_batch.group_name }}</strong>
+                {% if selected_batch.timestamp %} &middot; {{ selected_batch.timestamp }}{% endif %}
+            </p>
+            <a href="/dashboard/evaluasi" class="btn btn-navy px-4 py-2 fw-bold"><i class="bi bi-play-fill me-1"></i> Ke Menu Evaluasi</a>
+            <div class="mt-3">
+                <form method="POST" action="/reset_evaluasi" onsubmit="return confirm('Hapus SEMUA data evaluasi dan draft? Semua sesi akan hilang permanen.');" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger px-4 py-2 fw-bold"><i class="bi bi-trash3 me-1"></i> Hapus Semua Sesi Lama</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 px-2 gap-3">
+        <div>
+            <h3 class="fw-bold text-body-emphasis mb-1">Optimasi Parameter (Grid Search)</h3>
+            <p class="text-body-secondary fs-5 mb-0">Visualisasi heatmap kombinasi k1 dan b beserta nilai tertingginya pada metode BM25+Boost.</p>
+            <p class="text-body-secondary small mt-2 mb-0">
+                <i class="bi bi-collection me-1"></i> Sesi aktif:
+                <strong>{{ selected_batch.group_name }}</strong>
+                {% if selected_batch.timestamp %} &middot; {{ selected_batch.timestamp }}{% endif %}
+                &middot; Top-N = {{ selected_batch.top_n }}
+                &middot; {{ selected_batch.stats.total_query }} kueri
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center bg-body p-2 rounded-3 border border-secondary border-opacity-25 shadow-sm">
+            <select id="batch-select" onchange="changeBatch(this.value, '/dashboard/tuning')" class="form-select border-0 bg-body text-body-emphasis fw-bold shadow-none">
+                {% for b in batches %}
+                <option value="{{ b.id }}" {% if selected_batch and selected_batch.group_id == b.id %}selected{% endif %}>{{ b.nama }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- HEATMAP -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-lg-4">
+            <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 h-100">
+                <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4">
+                    <h5 class="text-navy fw-bold mb-0"><i class="bi bi-gear-fill me-2"></i>Konfigurasi Heatmap</h5>
+                </div>
+                <div class="card-body p-4">
+                    <label class="form-label fw-bold text-body-secondary mb-2">Target Metrik Optimasi</label>
+                    <select id="metric-select" class="form-select form-select-lg mb-4 fw-bold text-navy shadow-sm border-secondary border-opacity-25" onchange="redrawAll()">
+                        <option value="ndcg">NDCG (Relevansi Bertingkat)</option>
+                        <option value="map">MAP (Rata-rata Presisi)</option>
+                    </select>
+
+                    <label class="form-label fw-bold text-body-secondary mb-2">Penandaan Sel Tertinggi</label>
+                    <select id="highlight-select" class="form-select mb-4 fw-bold shadow-sm border-secondary border-opacity-25" onchange="redrawAll()">
+                        <option value="max" selected>Semua kombinasi seri di nilai maksimum</option>
+                        <option value="3">Top 3 kombinasi tertinggi</option>
+                        <option value="5">Top 5 kombinasi tertinggi</option>
+                        <option value="10">Top 10 kombinasi tertinggi</option>
+                    </select>
+
+                    <div class="bg-body-tertiary p-3 rounded-3 border border-secondary border-opacity-25 mt-4">
+                        <p class="fw-bold mb-2 small text-body-secondary"><i class="bi bi-info-circle me-1"></i> Detail Kalkulasi</p>
+                        <ul class="small mb-0 text-body-secondary ps-3">
+                            <li class="mb-1">Tuning berjalan otomatis di <em>background</em> saat eksekusi evaluasi.</li>
+                            <li class="mb-1">Rentang k₁: 0.0 - 3.0 (step 0.5)</li>
+                            <li class="mb-1">Rentang b: 0.0 - 1.0 (step 0.2)</li>
+                            <li>Total: {{ selected_batch.tuning_data|length }} kombinasi iterasi</li>
+                            <li class="mt-1">Presisi perhitungan: 6 digit desimal.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-body-tertiary p-3 rounded-3 border border-secondary border-opacity-25 mt-3">
+                        <p class="fw-bold mb-2 small text-body-secondary"><i class="bi bi-signpost-split me-1"></i> Aturan Penentuan Nilai Tertinggi</p>
+                        <ul class="small mb-0 text-body-secondary ps-3">
+                            <li class="mb-1">Semua kombinasi yang mencapai nilai maksimum ditandai (seri tidak disembunyikan).</li>
+                            <li class="mb-1">Tabel dapat disortir dengan klik judul kolom (klik kedua = urutan terbalik).</li>
+                            <li class="mb-1">Tie-breaker urutan: dua metrik lainnya &rarr; k₁ terkecil.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-9 col-lg-8">
+            <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 h-100">
+                <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="text-navy fw-bold mb-0"><i class="bi bi-grid-3x3 me-2"></i>Heatmap 2D (<span id="heatmap-title">Mean NDCG</span>)</h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="badge bg-primary px-4 py-2 fs-6 shadow-sm" id="best-badge">Nilai maks: -</span>
+                        <button class="btn btn-sm btn-primary fw-bold px-3 shadow-sm" onclick="exportToExcelStyled('hiddenTuningExcelTable', 'Laporan_Tuning_BM25.xls')">
+                            <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Data Tuning
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-4 d-flex justify-content-center align-items-center" style="min-height: 400px; overflow-x: auto;" id="heatmap-container">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABEL PERINGKAT (SORTIR DENGAN KLIK HEADER) -->
+    <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 overflow-hidden mb-5">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="text-navy fw-bold mb-0"><i class="bi bi-list-ol me-2"></i>Tabel Peringkat Parameter</h5>
+            <span class="text-body-secondary small fw-bold"><i class="bi bi-sort-down me-1"></i> Klik judul kolom untuk mengurutkan</span>
+        </div>
+        <div class="table-responsive" style="max-height: 500px;">
+            <table class="table table-hover align-middle mb-0 table-custom text-center">
+                <thead class="table-light sticky-top shadow-sm">
+                    <tr>
+                        <th style="width: 8%;">Peringkat</th>
+                        <th style="cursor: pointer; user-select: none;" onclick="setSort('k1')">k₁ (Term Saturation) <span id="ind-k1" class="text-navy"></span></th>
+                        <th style="cursor: pointer; user-select: none;" onclick="setSort('b')">b (Length Norm) <span id="ind-b" class="text-navy"></span></th>
+                        <th style="cursor: pointer; user-select: none;" onclick="setSort('ndcg')">NDCG <span id="ind-ndcg" class="text-navy"></span></th>
+                        <th style="cursor: pointer; user-select: none;" onclick="setSort('map')">MAP <span id="ind-map" class="text-navy"></span></th>
+                    </tr>
+                </thead>
+                <tbody id="tuning-table-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <table id="hiddenTuningExcelTable" style="display: none; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px; text-align: center;">Iterasi</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px; text-align: center;">k1 (Term Saturation)</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px; text-align: center;">b (Length Norm)</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px; text-align: center;">Mean NDCG</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px; text-align: center;">Mean MAP</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in selected_batch.tuning_data %}
+            <tr>
+                <td style="border: 1px solid black; text-align: center;">{{ loop.index }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.1f"|format(r.k1) }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.1f"|format(r.b) }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.6f"|format(r.ndcg) }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.6f"|format(r.map) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if has_data and selected_batch.tuning_data %}
+<script id="tuning-data" type="application/json">{{ selected_batch.tuning_data|tojson }}</script>
+<script>
+    const tuningData = JSON.parse(document.getElementById('tuning-data').textContent);
+
+    const METRICS = ['ndcg', 'map'];
+    const METRIC_NAMES = { 'ndcg': 'NDCG', 'map': 'MAP' };
+
+    // State sortir tabel: key = kolom, dir = -1 (desc) / 1 (asc)
+    let sortState = { key: 'ndcg', dir: -1 };
+
+    // Sortir berlapis: kolom utama, lalu dua metrik lainnya (desc), lalu k1 asc, b asc
+    function getSortedBy(key, dir) {
+        return [...tuningData].sort((a, b) => {
+            let c = (a[key] - b[key]) * dir;
+            if (c !== 0) return c;
+            for (const m of METRICS) {
+                if (m === key) continue;
+                const d = b[m] - a[m];
+                if (d !== 0) return d;
+            }
+            if (a.k1 !== b.k1) return a.k1 - b.k1;
+            return a.b - b.b;
+        });
+    }
+
+    // Daftar kombinasi yang di-highlight (sesuai dropdown "Penandaan Sel Tertinggi")
+    function getHighlightCombos(metric) {
+        const mode = document.getElementById('highlight-select').value;
+        const sorted = getSortedBy(metric, -1);   // tertinggi dulu
+        if (mode === 'max') {
+            const max_val = sorted[0][metric];
+            return sorted.filter(r => r[metric] === max_val);   // SEMUA yang seri di maksimum
+        }
+        return sorted.slice(0, parseInt(mode, 10));              // Top-K kombinasi tertinggi
+    }
+
+    function redrawHeatmap() {
+        if (!tuningData || tuningData.length === 0) return;
+
+        const metric = document.getElementById('metric-select').value;
+        document.getElementById('heatmap-title').textContent = 'Mean ' + METRIC_NAMES[metric];
+
+        let k1_set = new Set(), b_set = new Set();
+        let max_val = -1, min_val = Infinity;
+        tuningData.forEach(r => {
+            k1_set.add(r.k1); b_set.add(r.b);
+            if (r[metric] > max_val) max_val = r[metric];
+            if (r[metric] < min_val) min_val = r[metric];
+        });
+
+        // Semua sel tertinggi (sesuai mode highlight) ditandai, bukan satu saja
+        const hl_combos = getHighlightCombos(metric);
+        const isBestCell = (k, b) => hl_combos.some(c => c.k1 === k && c.b === b);
+
+        let k1_arr = Array.from(k1_set).sort((a, b) => a - b);
+        let b_arr = Array.from(b_set).sort((a, b) => a - b);
+
+        let dataMap = {};
+        tuningData.forEach(r => { if (!dataMap[r.b]) dataMap[r.b] = {}; dataMap[r.b][r.k1] = r[metric]; });
+
+        let range = max_val - min_val;
+
+        let html = '<table class="table table-borderless w-auto m-0"><thead><tr><th class="text-end align-middle pb-3 pe-4 text-body-secondary fs-6">b \\ k₁</th>';
+        k1_arr.forEach(k => html += `<th class="text-center pb-3 fw-bold text-navy fs-6">${k.toFixed(1)}</th>`);
+        html += '</tr></thead><tbody>';
+
+        b_arr.forEach(b => {
+            html += `<tr><th class="text-end align-middle pe-4 fw-bold text-navy fs-6">${b.toFixed(1)}</th>`;
+            k1_arr.forEach(k => {
+                let val = dataMap[b][k] || 0;
+                let isBest = isBestCell(k, b);
+
+                let intensity = range === 0 ? 1 : (val - min_val) / range;
+                if (intensity < 0) intensity = 0; if (intensity > 1) intensity = 1;
+                let r_col = Math.round(239 - (239 - 16) * intensity);
+                let g_col = Math.round(68 + (185 - 68) * intensity);
+                let b_col = Math.round(68 + (129 - 68) * intensity);
+
+                html += `<td class="p-2"><div class="heatmap-cell rounded-4 shadow-sm fs-5 ${isBest ? 'best-cell' : ''}" style="background-color: rgb(${r_col},${g_col},${b_col});" title="k1=${k}, b=${b} -> ${METRIC_NAMES[metric]}=${val.toFixed(4)}">
+                    ${val.toFixed(2)}
+                </div></td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+
+        document.getElementById('heatmap-container').innerHTML = html;
+
+        // Badge: nilai maksimum + semua kombinasi yang mencapainya
+        const max_combos = getSortedBy(metric, -1).filter(r => r[metric] === max_val);
+        const comboText = max_combos.map(c => `k₁=${c.k1.toFixed(1)}, b=${c.b.toFixed(1)}`).join(' &nbsp;·&nbsp; ');
+        const seriLabel = max_combos.length > 1
+            ? ` &nbsp;<span class="badge bg-warning text-dark">${max_combos.length} seri</span>`
+            : '';
+        const hlNote = hl_combos.length !== max_combos.length
+            ? ` &nbsp;<span class="badge bg-light text-dark border">${hl_combos.length} ditandai</span>`
+            : '';
+        document.getElementById('best-badge').innerHTML =
+            `${METRIC_NAMES[metric]} maks: ${comboText} &nbsp;|&nbsp; ${max_val.toFixed(4)}${seriLabel}${hlNote}`;
+    }
+
+    function redrawTable() {
+        if (!tuningData || tuningData.length === 0) return;
+
+        const metric = document.getElementById('metric-select').value;
+        const hl_combos = getHighlightCombos(metric);
+        const hlKeys = new Set(hl_combos.map(c => c.k1 + '|' + c.b));
+
+        const sortedData = getSortedBy(sortState.key, sortState.dir);
+
+        let tbody = '';
+        sortedData.forEach((r, index) => {
+            const isHighlighted = hlKeys.has(r.k1 + '|' + r.b);
+            const rowClass = isHighlighted ? 'table-best-row' : '';
+
+            tbody += `
+                <tr class="${rowClass}">
+                    <td class="fw-bold ${isHighlighted ? 'text-white' : 'text-body-secondary'}">${index + 1}</td>
+                    <td>${r.k1.toFixed(1)}</td>
+                    <td>${r.b.toFixed(1)}</td>
+                    <td>${r.ndcg.toFixed(4)}</td>
+                    <td>${r.map.toFixed(4)}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('tuning-table-body').innerHTML = tbody;
+        updateSortIndicators();
+    }
+
+    function setSort(key) {
+        if (sortState.key === key) {
+            sortState.dir *= -1;          // klik kedua = urutan terbalik
+        } else {
+            sortState.key = key;
+            sortState.dir = -1;           // default: tertinggi dulu
+        }
+        redrawTable();
+    }
+
+    function updateSortIndicators() {
+        ['k1', 'b', ...METRICS].forEach(k => {
+            const el = document.getElementById('ind-' + k);
+            if (!el) return;
+            el.textContent = (sortState.key === k) ? (sortState.dir === -1 ? '▼' : '▲') : '';
+        });
+    }
+
+    function redrawAll() { redrawHeatmap(); redrawTable(); }
+    function onThemeChange() { window.location.reload(); }
+    // changeBatch & exportToExcelStyled disediakan oleh ui.js
+
+    document.addEventListener("DOMContentLoaded", () => { redrawAll(); });
+</script>
+{% endif %}
+{% endblock %}

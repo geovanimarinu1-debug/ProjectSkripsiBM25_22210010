@@ -1,0 +1,346 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Analitik Evaluasi | Sistem Evaluasi Kamus Manado{% endblock %}
+
+{% block extra_head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Plugin DataLabels ditambahkan di sini -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+{% endblock %}
+
+{% block dashboard_content %}
+    {% if not has_data %}
+    <div class="card bg-body border-secondary border-opacity-25 shadow-sm rounded-4 py-5 mt-4">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-graph-down text-body-tertiary" style="font-size: 5rem;"></i>
+            <h3 class="text-navy fw-bold mt-3 mb-2">Belum Ada Sesi Analitik</h3>
+            <p class="text-body-secondary fs-5 mb-4">Lakukan kalkulasi metrik pada menu Evaluasi terlebih dahulu.</p>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 px-2 gap-3">
+        <div>
+            <h3 class="fw-bold text-body-emphasis mb-1">Interpretasi Evaluasi IR</h3>
+            <p class="text-body-secondary fs-5 mb-0">Laporan performa algoritma berdasarkan pengelompokkan kategori</p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 align-items-center bg-body p-2 rounded-3 border border-secondary border-opacity-25 shadow-sm">
+            <select id="batch-select" onchange="changeBatch(this.value, '/dashboard')" class="form-select border-0 bg-body text-body-emphasis fw-bold shadow-none" style="min-width: 280px;">
+                {% for b in batches %}
+                <option value="{{ b.id }}" {% if selected_batch and selected_batch.group_id == b.id %}selected{% endif %}>{{ b.nama }}</option>
+                {% endfor %}
+            </select>
+            <form method="POST" action="/hapus_batch/{{ selected_batch.group_id }}" onsubmit="return confirm('Hapus sesi evaluasi ini secara permanen? (Draft tetap aman)');" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger fw-bold" title="Hapus batch ini"><i class="bi bi-trash3"></i></button>
+            </form>
+            <form method="POST" action="/reset_batch" onsubmit="return confirm('Hapus SEMUA hasil batch evaluasi?\n\nDraft (kueri + Ground Truth) TIDAK akan terhapus dan tetap bisa dievaluasi ulang. Lanjutkan?');" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-warning fw-bold" title="Hapus semua batch (draft tetap aman)">
+                    <i class="bi bi-trash2-fill me-1"></i> Bersihkan Semua Batch
+                </button>
+            </form>
+            <a href="/admin/batch" class="btn btn-sm btn-outline-secondary fw-bold" title="Manajemen batch (admin)"><i class="bi bi-gear"></i></a>
+        </div>
+    </div>
+
+    <!-- KPI Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl col-lg-4 col-sm-6">
+            <div class="card kpi-card h-100 bg-body shadow-sm border-0 rounded-3">
+                <div class="card-body p-3">
+                    <p class="text-body-secondary text-uppercase fw-bold small mb-1" style="font-size: 0.7rem;">Rata-rata Precision</p>
+                    <h3 class="text-navy fw-bold mb-0">{{ "%.4f"|format(selected_batch.stats.avg_precision) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-lg-4 col-sm-6">
+            <div class="card kpi-card h-100 bg-body shadow-sm border-0 rounded-3">
+                <div class="card-body p-3">
+                    <p class="text-body-secondary text-uppercase fw-bold small mb-1" style="font-size: 0.7rem;">Rata-rata Recall</p>
+                    <h3 class="fw-bold mb-0 text-primary">{{ "%.4f"|format(selected_batch.stats.avg_recall) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-lg-4 col-sm-6">
+            <div class="card kpi-card h-100 bg-body shadow-sm border-0 rounded-3" style="border-left-color: #8b5cf6 !important;">
+                <div class="card-body p-3">
+                    <p class="text-body-secondary text-uppercase fw-bold small mb-1" style="font-size: 0.7rem;">Rata-rata MAP</p>
+                    <h3 class="fw-bold mb-0" style="color: #8b5cf6 !important;">{{ "%.4f"|format(selected_batch.stats.map_score) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-lg-4 col-sm-6">
+            <div class="card kpi-card h-100 bg-body shadow-sm border-0 rounded-3" style="border-left-color: #ec4899 !important;">
+                <div class="card-body p-3">
+                    <p class="text-body-secondary text-uppercase fw-bold small mb-1" style="font-size: 0.7rem;">Rata-rata NDCG</p>
+                    <h3 class="fw-bold mb-0" style="color: #ec4899 !important;">{{ "%.4f"|format(selected_batch.stats.mean_ndcg) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-lg-4 col-sm-6">
+            <div class="card kpi-card h-100 bg-body shadow-sm border-0 rounded-3" style="border-left-color: #64748b !important;">
+                <div class="card-body p-3">
+                    <p class="text-body-secondary text-uppercase fw-bold small mb-1" style="font-size: 0.7rem;">Kueri Dieksekusi</p>
+                    <h3 class="text-body-emphasis fw-bold mb-0">{{ selected_batch.stats.total_query }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABEL TERSEMBUNYI UNTUK DI-COPY KE WORD -->
+    <table id="rawTableForWord" border="1" style="position: absolute; left: -9999px; top: 0; opacity: 0;">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Query</th>
+                <th>Kategori</th>
+                <th>TP</th>
+                <th>FP</th>
+                <th>FN</th>
+                <th>Precision</th>
+                <th>Recall</th>
+                <th>MAP</th>
+                <th>NDCG</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in selected_batch.queries %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ e.kueri }}</td>
+                <td>{{ e.kategori }}</td>
+                <td>{{ e.TP }}</td>
+                <td>{{ e.FP }}</td>
+                <td>{{ e.FN }}</td>
+                <td>{{ "%.4f"|format(e.precision) }}</td>
+                <td>{{ "%.4f"|format(e.recall) }}</td>
+                <td>{{ "%.4f"|format(e.ap_score) }}</td>
+                <td>{{ "%.4f"|format(e.ndcg) }}</td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="3" align="center"><strong>MEAN (RATA-RATA)</strong></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td><strong>{{ "%.4f"|format(selected_batch.stats.avg_precision) }}</strong></td>
+                <td><strong>{{ "%.4f"|format(selected_batch.stats.avg_recall) }}</strong></td>
+                <td><strong>{{ "%.4f"|format(selected_batch.stats.map_score) }}</strong></td>
+                <td><strong>{{ "%.4f"|format(selected_batch.stats.mean_ndcg) }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- TABEL EXCEL EVALUASI LENGKAP -->
+    <table id="hiddenExcelTable" style="display: none; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">No</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">Query</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">Kategori</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">TP</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">FP</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">FN</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">Precision</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">Recall</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">MAP</th>
+                <th style="background-color: #1e3a8a; color: white; border: 1px solid black; padding: 5px;">NDCG</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in selected_batch.queries %}
+            <tr>
+                <td style="border: 1px solid black; text-align: center;">{{ loop.index }}</td>
+                <td style="border: 1px solid black; text-align: left;">{{ e.kueri }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ e.kategori }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ e.TP }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ e.FP }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ e.FN }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.4f"|format(e.precision) }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.4f"|format(e.recall) }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.4f"|format(e.ap_score) }}</td>
+                <td style="border: 1px solid black; text-align: center;">{{ "%.4f"|format(e.ndcg) }}</td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="6" style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f1f5f9;">MEAN (RATA-RATA)</td>
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f1f5f9;">{{ "%.4f"|format(selected_batch.stats.avg_precision) }}</td>
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f1f5f9;">{{ "%.4f"|format(selected_batch.stats.avg_recall) }}</td>
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f1f5f9;">{{ "%.4f"|format(selected_batch.stats.map_score) }}</td>
+                <td style="border: 1px solid black; text-align: center; font-weight: bold; background-color: #f1f5f9;">{{ "%.4f"|format(selected_batch.stats.mean_ndcg) }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="card bg-body shadow-sm border-secondary border-opacity-25 rounded-4 mb-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4 d-flex justify-content-between align-items-center">
+            <h5 class="text-navy fw-bold mb-0"><i class="bi bi-bar-chart-line-fill me-2"></i>Average Performance by Query Category</h5>
+            <span class="badge bg-secondary bg-opacity-10 text-body border border-secondary border-opacity-25 fs-6">{{ selected_batch.grouped_stats|length }} Kategori Ditemukan</span>
+        </div>
+        <div class="card-body p-4">
+            <div class="chart-container"><canvas id="mainChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="card h-100 bg-body shadow-sm border-secondary border-opacity-25 rounded-4 overflow-hidden mb-5">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25 p-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="text-navy fw-bold mb-0"><i class="bi bi-table me-2"></i>Log Pengujian Kueri Individual</h5>
+            <div>
+                <button class="btn btn-sm btn-outline-success fw-bold px-3 shadow-sm me-1" onclick="copyTableToWord()" id="btnCopyWord">
+                    <i class="bi bi-clipboard2-check me-1"></i> Copy Tabel
+                </button>
+                <button class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="exportToExcelStyled('hiddenExcelTable', 'Laporan_Detail_Algoritma_Utama.xls')">
+                    <i class="bi bi-file-earmark-excel-fill me-1"></i> Export ke Excel
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive" style="max-height: 500px;">
+            <table class="table table-hover align-middle mb-0 table-custom">
+                <thead class="table-light sticky-top shadow-sm">
+                    <tr>
+                        <th class="ps-4">Teks Kueri</th>
+                        <th>Kategori</th>
+                        <th class="text-center">Precision</th>
+                        <th class="text-center">Recall</th>
+                        <th class="text-center">MAP</th>
+                        <th class="text-center">NDCG</th>
+                        <th class="text-center border-start">TP</th><th class="text-center">FP</th><th class="text-center">FN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in selected_batch.queries %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-navy">{{ e.kueri }}</td>
+                        <td><span class="badge bg-secondary text-white">{{ e.kategori }}</span></td>
+                        <td class="text-center"><span class="badge bg-navy fw-medium fs-6">{{ "%.2f"|format(e.precision) }}</span></td>
+                        <td class="text-center"><span class="badge bg-primary fw-medium fs-6">{{ "%.2f"|format(e.recall) }}</span></td>
+                        <td class="text-center"><span class="badge fw-medium fs-6" style="background-color: #8b5cf6; color: #fff;">{{ "%.2f"|format(e.ap_score) }}</span></td>
+                        <td class="text-center"><span class="badge fw-bold fs-6 shadow-sm" style="background-color: #ec4899; color: #fff;">{{ "%.2f"|format(e.ndcg) }}</span></td>
+                        <td class="text-center border-start fw-bold text-body">{{ e.TP }}</td><td class="text-center fw-bold text-danger">{{ e.FP }}</td><td class="text-center fw-bold text-warning">{{ e.FN }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if has_data %}
+<script id="grouped-data" type="application/json">{{ selected_batch.grouped_stats|tojson }}</script>
+<script>
+    const groupedData = JSON.parse(document.getElementById('grouped-data').textContent);
+
+    function getChartColors() {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        return { text: isDark ? '#cbd5e1' : '#475569', grid: isDark ? '#334155' : '#e2e8f0', navy: isDark ? '#60a5fa' : '#1e3a8a', blue: isDark ? '#3b82f6' : '#2563eb' };
+    }
+
+    function renderGroupedBar() {
+        const c = getChartColors();
+        Chart.defaults.color = c.text; Chart.defaults.borderColor = c.grid;
+
+        // Registrasi plugin ChartDataLabels
+        Chart.register(ChartDataLabels);
+
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: groupedData.map(d => d.kategori + ' (' + d.total + ')'),
+                datasets: [
+                    { label: 'Avg Precision', data: groupedData.map(d => d.avg_precision), backgroundColor: c.navy, borderRadius: 4 },
+                    { label: 'Avg Recall', data: groupedData.map(d => d.avg_recall), backgroundColor: c.blue, borderRadius: 4 },
+                    { label: 'Avg MAP', data: groupedData.map(d => d.avg_map), backgroundColor: '#8b5cf6', borderRadius: 4 },
+                    { label: 'Avg NDCG', data: groupedData.map(d => d.avg_ndcg), backgroundColor: '#ec4899', borderRadius: 4 }
+                ]
+            },
+            // Tambahkan plugin ke konfigurasi chart
+            plugins: [ChartDataLabels],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    // Tambahkan padding atas agar label di chart tertinggi tidak terpotong canvas
+                    padding: { top: 25 }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                plugins: {
+                    // Konfigurasi ChartDataLabels
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        offset: 2,
+                        color: c.text,
+                        font: {
+                            family: 'Segoe UI',
+                            size: 11,
+                            weight: 'bold'
+                        },
+                        formatter: function(value) {
+                            return value.toFixed(4);
+                        }
+                    },
+                    legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Segoe UI', size: 12 } } },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        cornerRadius: 8,
+                        titleFont: { family: 'Segoe UI', size: 14, weight: 'bold' },
+                        bodyFont: { family: 'Segoe UI', size: 13 },
+                        displayColors: true,
+                        boxPadding: 4,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                return tooltipItems[0].label;
+                            },
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                label += context.parsed.y.toFixed(4);
+                                return label;
+                            }
+                        }
+                    }
+                },
+                // Perbesar batas max agar label tidak bertabrakan dengan batas atas
+                scales: { y: { beginAtZero: true, max: 1.15 }, x: { grid: { display: false } } }
+            }
+        });
+    }
+
+    renderGroupedBar();
+
+    function onThemeChange() { window.location.reload(); }
+
+    function copyTableToWord() {
+        const table = document.getElementById("rawTableForWord");
+        const range = document.createRange();
+        const selection = window.getSelection();
+
+        range.selectNode(table);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        try {
+            document.execCommand('copy');
+            const btn = document.getElementById('btnCopyWord');
+            btn.innerHTML = '<i class="bi bi-check-all me-1"></i> Tersalin!';
+            btn.classList.replace('btn-outline-success', 'btn-success');
+            setTimeout(() => {
+                btn.innerHTML = '<i class="bi bi-clipboard2-check me-1"></i> Copy Tabel';
+                btn.classList.replace('btn-success', 'btn-outline-success');
+            }, 3000);
+        } catch (err) {
+            alert('Gagal menyalin tabel. Silakan gunakan browser Chrome atau Edge.');
+        }
+
+        selection.removeAllRanges();
+    }
+</script>
+{% endif %}
+{% endblock %}
